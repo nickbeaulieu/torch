@@ -1,6 +1,8 @@
 import { args, assert, notImplemented } from "./utils";
 import { $ } from "bun";
 
+// https://opensource.apple.com/source/xnu/xnu-1504.3.12/bsd/kern/syscalls.master
+
 enum Op {
   Push,
   Plus,
@@ -63,8 +65,20 @@ function simulate(program: Program) {
 }
 
 async function compile(program: Program) {
-  await $`nasm -f test.asm`;
-  await $`ld -o test test.o`;
+  let output = "";
+  output += "section .text\n";
+  output += "global _main\n";
+
+  output += "_main:\n";
+  output += "  mov rax, 0x2000001\n";
+  output += "  mov rdi, 0\n";
+  output += "  syscall\n";
+  Bun.write("output.asm", output);
+
+  await $`nasm -f macho64 output.asm`;
+  // redirect stdout and std error to /dev/null to avoid cluttering the output
+  await $`gcc -o output output.o -target x86_64-apple-darwin &> /dev/null`;
+  await $`./output`;
 }
 
 const program = [

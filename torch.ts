@@ -1,8 +1,6 @@
 import { args, assert, notImplemented } from "./utils";
 import { $ } from "bun";
 
-// https://opensource.apple.com/source/xnu/xnu-1504.3.12/bsd/kern/syscalls.master
-
 enum Op {
   Push,
   Plus,
@@ -66,18 +64,80 @@ function simulate(program: Program) {
 
 async function compile(program: Program) {
   let output = "";
-  output += "section .text\n";
-  output += "global _main\n";
+  output += "#include <stdio.h>\n";
+  output += "#include <stdlib.h>\n";
+  output += "#include <stdint.h>\n";
+  output += "#include <unistd.h>\n";
+  output += "\n";
+  output += "#define SIZE 1024\n";
 
-  output += "_main:\n";
-  output += "  mov rax, 0x2000001\n";
-  output += "  mov rdi, 0\n";
-  output += "  syscall\n";
-  Bun.write("output.asm", output);
+  output += "int top = -1;\n";
+  output += "uint64_t inp_array[SIZE];\n";
+  output += "void push(uint64_t n);\n";
+  output += "uint64_t pop();\n";
 
-  await $`nasm -f macho64 output.asm`;
-  // redirect stdout and std error to /dev/null to avoid cluttering the output
-  await $`gcc -o output output.o -target x86_64-apple-darwin &> /dev/null`;
+  output += "void dump(uint64_t n) {\n";
+  output += '  printf("%llu\\n", n);\n';
+  output += "}\n";
+
+  output += "int main() {\n";
+  output += "uint64_t a, b;\n";
+
+  for (const op of program) {
+    switch (op[0]) {
+      case Op.Push:
+        output += `  // -- push ${op[1]} --\n`;
+        output += `  push(${op[1]});\n`;
+        break;
+      case Op.Plus:
+        output += "  // -- plus --\n";
+        output += "  a = pop();\n";
+        output += "  b = pop();\n";
+        output += "  push(a + b);\n";
+        break;
+      case Op.Minus:
+        output += "  // -- minus --\n";
+        output += "  a = pop();\n";
+        output += "  b = pop();\n";
+        output += "  push(b - a);\n";
+        break;
+      case Op.Dump:
+        output += "  // -- dump --\n";
+        output += "  a = pop();\n";
+        output += "  dump(a);\n";
+        break;
+      default:
+        notImplemented();
+    }
+  }
+
+  output += "  return 0;\n";
+  output += "}\n";
+
+  output += "void push(uint64_t n) {\n";
+  output += "  int x;\n";
+  output += "  if (top == SIZE - 1) {\n";
+  output += '    printf("\\nOverflow!!");\n';
+  output += "  }\n";
+  output += "  else {\n";
+  output += "    x = n;\n";
+  output += "    top = top + 1;\n";
+  output += "    inp_array[top] = x;\n";
+  output += "  }\n";
+  output += "}\n";
+  output += "\n";
+  output += "uint64_t pop() {\n";
+  output += "  if (top == -1) {\n";
+  output += '    printf("\\nUnderflow!!");\n';
+  output += "    return 0;\n";
+  output += "  }\n";
+  output += "  else {\n";
+  output += "    return inp_array[top--];\n";
+  output += "  }\n";
+  output += "}\n";
+
+  await Bun.write("output.c", output);
+  await $`gcc -o output output.c`;
   await $`./output`;
 }
 
@@ -121,5 +181,3 @@ if (args.positionals.length > 2) {
       process.exit(1);
   }
 }
-
-// await Bun.write("./test.txt", "Hello, World!");

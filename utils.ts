@@ -15,6 +15,7 @@ const args = parseArgs({
   options: {
     flag1: {
       type: "boolean",
+      short: "f",
     },
     flag2: {
       type: "string",

@@ -1,0 +1,14 @@
+import io
+
+func main() -> int {
+  print("hello, world")
+}
+
+--------------------
+---- compile to ----
+--------------------
+#include <stdio.h>
+
+int main() {
+  printf("hello, world\n");
+}

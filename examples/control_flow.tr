@@ -1,0 +1,11 @@
+/// Expect: "OK\n"
+
+func main() -> int {
+	if (1 == 2) {
+		println("not OK");
+	} else {
+		println("OK");
+	}
+
+	return 0;
+}

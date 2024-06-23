@@ -1,0 +1,17 @@
+/// Expect: "10\n"
+
+let a = 0;
+
+func inc() -> int {
+  if (a < 10) {
+    a = a + 1;
+    inc();
+  }
+  return a;
+}
+
+func main() -> int {
+  inc();
+  println("%d", a);
+  return 0;
+}

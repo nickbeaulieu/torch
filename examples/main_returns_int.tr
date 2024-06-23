@@ -1,0 +1,8 @@
+/// Expect: "9"
+
+
+func main() -> int {
+  let a = 9;
+  print("%d", a);
+  return 0;
+}

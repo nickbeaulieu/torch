@@ -1,0 +1,23 @@
+/// Expect: "4613732\n"
+
+func main() -> int {
+	let acc = 0;
+	let a = 1;
+	let b = 1;
+	let curr = 1;
+	while(curr < 4000000) {
+		curr = a + b;
+
+		if (curr % 2 == 0) {
+			acc = acc + curr;
+		}
+
+		a = b;
+		b = curr;
+	}
+	println("%d", acc);
+
+	return 0;
+}
+
+// https://github.com/eagletmt/project-euler-c/blob/master/1-9/problem3.c

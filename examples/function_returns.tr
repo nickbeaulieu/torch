@@ -1,0 +1,28 @@
+/// Expect: "19\nstr\n1\ndoSomething voided\ndoSomething is a string\n0x0 is null\n"
+
+func doSomethingVoid() -> void {
+  println("doSomething voided");
+}
+
+func doSomethingStr() -> int {
+  println("doSomething is a string");
+  return 9;
+}
+
+func main() -> int {
+  let a = 9;
+  let b = 10;
+  let c = "str";
+  println("%d", a + b);
+  println("%s", c);
+
+  let fake = true;
+  println("%d", fake);
+
+  doSomethingVoid();
+  doSomethingStr();
+
+  let thing = null;
+  println("%p is null", thing);
+  return 0;
+}

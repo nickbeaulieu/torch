@@ -1,5 +1,7 @@
 {
   "files.associations": {
-    "unistd.h": "c"
+    "*.tr": "go",
+    "unistd.h": "c",
+    "string.h": "c"
   }
 }

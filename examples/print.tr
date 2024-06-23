@@ -1,14 +1,20 @@
-import io
+/// Expect "say hello\nhello, world!\nit's working!\n\n32\n"
 
-func main() -> int {
-  print("hello, world")
+func hello() -> void {
+  println("say hello");
 }
 
---------------------
----- compile to ----
---------------------
-#include <stdio.h>
+func main() -> int {
+  hello();
 
-int main() {
-  printf("hello, world\n");
+  print("hello, world!\n");
+  print("it's working!\n");
+  print("\n");
+  print("%d\n", (9 + 7) * 2);
+  let b = true;
+  // println("%d", b);
+  // println("%d", b);
+  // println("%d", b);
+  // println("%d", b);
+  return 0;
 }

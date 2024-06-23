@@ -2,8 +2,14 @@
   "name": "torth",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "generate": "bun run ./generate-ast.ts",
+    "test": "bun run ./test/examples.ts"
+  },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "prettier": "^3.3.2",
+    "prettier-plugin-organize-imports": "^3.2.4"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

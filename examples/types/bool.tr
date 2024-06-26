@@ -1,0 +1,9 @@
+/// Expect: "mybool: 0\nmybool: 1\n"
+
+func main() -> int {
+	let mybool: bool = false;
+	println("mybool: %d", 0);
+	mybool = true;
+	println("mybool: %d", 1);
+	return 0;
+}

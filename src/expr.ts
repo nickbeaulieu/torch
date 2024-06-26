@@ -83,11 +83,9 @@ export class Unary extends Expr {
 }
 export class Variable extends Expr {
   name: Token;
-  type: Type;
-  constructor(name: Token, type: Type) { 
+  constructor(name: Token) { 
     super();
     this.name = name;
-    this.type = type;
   }
 }
 export class ArrayAccess extends Expr {

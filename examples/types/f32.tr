@@ -1,0 +1,7 @@
+/// Expect: "myfloat: 3.141500"
+
+func main() -> int {
+	let myfloat: f32 = 3.1415;
+	print("myfloat: %f", myfloat);
+	return 0;
+}

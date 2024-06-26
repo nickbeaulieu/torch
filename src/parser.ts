@@ -393,14 +393,13 @@ export class Parser {
     }
 
     if (this.match(TokenKind.Identifier)) {
-      // FIXME: not an int...
       const variable = this.previous()
       if (this.match(TokenKind.LeftBracket)) {
         const expr = this.expression()
         this.consume(TokenKind.RightBracket, "Expect ']' after expression.")
         return new ArrayAccess(variable, expr)
       }
-      return new Variable(variable, Type.IntType)
+      return new Variable(variable)
     }
 
     if (this.match(TokenKind.LeftParen)) {

@@ -1,0 +1,7 @@
+/// Expect: "maxu8: 255"
+
+func main() -> int {
+	let maxu8: u8 = 255;
+	print("maxu8: %d", maxu8);
+	return 0;
+}

@@ -1,0 +1,7 @@
+/// Expect: "myuint: 18232"
+
+func main() -> int {
+	let myuint: uint = 18232;
+	print("myuint: %u", myuint);
+	return 0;
+}

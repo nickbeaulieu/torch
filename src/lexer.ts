@@ -137,19 +137,21 @@ export class Lexer {
   private number() {
     while (this.isDigit(this.peek())) this.advance()
 
+    let fractional = false
     // Look for a fractional part.
     if (this.peek() == '.' && this.isDigit(this.peekNext())) {
       // Consume the "."
       this.advance()
+      fractional = true
 
       while (this.isDigit(this.peek())) this.advance()
     }
 
-    // FIXME: only parsing ints for now
-    this.addTokenLiteral(
-      TokenKind.Number,
-      Number.parseInt(this.source.substring(this.start, this.current)),
-    )
+    const text = this.source
+      .substring(this.start, this.current)
+      .replaceAll(/_/g, '')
+
+    this.addTokenLiteral(TokenKind.Number, text)
   }
 
   private type(type: Type) {
@@ -168,7 +170,7 @@ export class Lexer {
   }
 
   private isDigit(c: string) {
-    return c >= '0' && c <= '9'
+    return (c >= '0' && c <= '9') || c == '_'
   }
 
   private isAlpha(c: string) {

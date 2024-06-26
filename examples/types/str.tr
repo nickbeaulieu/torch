@@ -1,0 +1,7 @@
+/// Expect: "mystr: this is a string literal"
+
+func main() -> int {
+	let mystr: str = "this is a string literal";
+	print("mystr: %s", mystr);
+	return 0;
+}

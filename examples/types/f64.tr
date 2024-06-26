@@ -1,0 +1,7 @@
+/// Expect: "mydouble: 3.14159265359"
+
+func main() -> int {
+	let mydouble: f64 = 3.14159265359;
+	print("mydouble: %.11f", mydouble);
+	return 0;
+}

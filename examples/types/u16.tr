@@ -1,0 +1,7 @@
+/// Expect: "myu16: 65535"
+
+func main() -> int {
+	let myu16: u16 = 65535;
+	print("myu16: %d", myu16);
+	return 0;
+}

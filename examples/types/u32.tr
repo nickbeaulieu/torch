@@ -1,0 +1,7 @@
+/// Expect: "maxu32: 4294967295"
+
+func main() -> int {
+	let maxu32: u32 = 4_294_967_295;
+	print("maxu32: %u", maxu32);
+	return 0;
+}

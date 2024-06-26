@@ -123,7 +123,20 @@ function generateExpression(expr: Expr): string {
       }
       return `${expr.name.lexeme} = ${generateExpression(expr.value)}`
     case expr instanceof Literal:
-      if (expr.type === 'number' || expr.type === 'boolean') {
+      if (expr.type === 'number') {
+        if (expr.value.includes('.')) {
+          return `${expr.value}`
+        } else {
+          const parseable = Number.parseInt(expr.value)
+          if (parseable.toString() === expr.value) {
+            return `${parseable}`
+          } else {
+            // unsigned long must be explicitly written as `123lu` so we can't just return `123`
+            // this is required if it doesn't fit in a regular int
+            return `${expr.value}lu`
+          }
+        }
+      } else if (expr.type === 'boolean') {
         return `${expr.value}`
       } else if (expr.type === 'null') {
         return `NULL`
@@ -139,8 +152,7 @@ function generateExpression(expr: Expr): string {
 
 function getTypes(token: Token) {
   if (!token.type) {
-    console.error('No type', token)
-    assert(false, 'Unreachable: unknown type')
+    assert(false, 'Unreachable: no type was found...')
   }
   return [token.type!, token.subtype] as const
 }
@@ -153,6 +165,20 @@ function generateTypes(type: Type) {
       return 'int'
     case Type.BoolType:
       return 'bool'
+    case Type.F32Type:
+      return 'float'
+    case Type.F64Type:
+      return 'double'
+    case Type.UIntType:
+      return 'unsigned int'
+    case Type.U8Type:
+      return 'unsigned char'
+    case Type.U16Type:
+      return 'unsigned short'
+    case Type.U32Type:
+      return 'unsigned int'
+    case Type.U64Type:
+      return 'unsigned long'
     default:
       assert(false, 'Unreachable: unknown type')
       return ''

@@ -1,4 +1,4 @@
-import { Token, TokenType } from './token'
+import { Token, TokenKind, Type } from './token'
 
 // heavily based on https://craftinginterpreters.com/scanning.html
 
@@ -25,37 +25,40 @@ export class Lexer {
       this.start = this.current
       this.scanToken()
     }
-    this.tokens.push(new Token(TokenType.EOF, '', null, this.line))
+    this.tokens.push(new Token(TokenKind.EOF, '', null, this.line))
   }
 
   private scanToken() {
     const c = this.advance()
     // prettier-ignore
     switch(c) {
-      case '(': this.addToken(TokenType.LeftParen); break;
-      case ')': this.addToken(TokenType.RightParen); break;
-      case '{': this.addToken(TokenType.LeftBrace); break;
-      case '}': this.addToken(TokenType.RightBrace); break;
-      case ',': this.addToken(TokenType.Comma); break;
-      case '.': this.addToken(TokenType.Dot); break;
-      case '+': this.addToken(TokenType.Plus); break;
-      case ';': this.addToken(TokenType.Semicolon); break;
-      case '*': this.addToken(TokenType.Star); break; 
-      case '%': this.addToken(TokenType.Percent); break; 
+      case '(': this.addToken(TokenKind.LeftParen); break;
+      case ')': this.addToken(TokenKind.RightParen); break;
+      case '[': this.addToken(TokenKind.LeftBracket); break;
+      case ']': this.addToken(TokenKind.RightBracket); break;
+      case '{': this.addToken(TokenKind.LeftBrace); break;
+      case '}': this.addToken(TokenKind.RightBrace); break;
+      case ',': this.addToken(TokenKind.Comma); break;
+      case '.': this.addToken(TokenKind.Dot); break;
+      case '+': this.addToken(TokenKind.Plus); break;
+      case ';': this.addToken(TokenKind.Semicolon); break;
+      case ':': this.addToken(TokenKind.Colon); break;
+      case '*': this.addToken(TokenKind.Star); break; 
+      case '%': this.addToken(TokenKind.Percent); break; 
       
-      case '-': this.addToken(this.match('>') ? TokenType.Arrow : TokenType.Minus); break;
+      case '-': this.addToken(this.match('>') ? TokenKind.Arrow : TokenKind.Minus); break;
       // prettier-ignore
-      case '!': this.addToken(this.match('=') ? TokenType.BangEqual : TokenType.Bang); break;
-      case '=': this.addToken(this.match('=') ? TokenType.EqualEqual : TokenType.Equal);break;
-      case '<': this.addToken(this.match('=') ? TokenType.LessOrEqual : TokenType.LessThan);break;
-      case '>': this.addToken(this.match('=') ? TokenType.GreaterOrEqual : TokenType.GreaterThan);break;
+      case '!': this.addToken(this.match('=') ? TokenKind.BangEqual : TokenKind.Bang); break;
+      case '=': this.addToken(this.match('=') ? TokenKind.EqualEqual : TokenKind.Equal);break;
+      case '<': this.addToken(this.match('=') ? TokenKind.LessOrEqual : TokenKind.LessThan);break;
+      case '>': this.addToken(this.match('=') ? TokenKind.GreaterOrEqual : TokenKind.GreaterThan);break;
 
       case '/':
         if (this.match('/')) {
           // A comment goes until the end of the line.
           while (this.peek() != '\n' && !this.isAtEnd()) this.advance();
         } else {
-          this.addToken(TokenType.Slash);
+          this.addToken(TokenKind.Slash);
         }
         break;
 
@@ -103,11 +106,11 @@ export class Lexer {
     return this.source.charAt(this.current++)
   }
 
-  private addToken(type: TokenType) {
+  private addToken(type: TokenKind) {
     this.addTokenLiteral(type, null)
   }
 
-  private addTokenLiteral(type: TokenType, literal: string | number | null) {
+  private addTokenLiteral(type: TokenKind, literal: string | number | null) {
     const text = this.source.substring(this.start, this.current)
     this.tokens.push(new Token(type, text, literal, this.line))
   }
@@ -128,7 +131,7 @@ export class Lexer {
 
     // Trim the surrounding quotes.
     const value = this.source.substring(this.start + 1, this.current - 1)
-    this.addTokenLiteral(TokenType.String, value)
+    this.addTokenLiteral(TokenKind.String, value)
   }
 
   private number() {
@@ -144,9 +147,24 @@ export class Lexer {
 
     // FIXME: only parsing ints for now
     this.addTokenLiteral(
-      TokenType.Number,
+      TokenKind.Number,
       Number.parseInt(this.source.substring(this.start, this.current)),
     )
+  }
+
+  private type(type: Type) {
+    if (this.peek() == '[' && this.peekNext() == ']') {
+      this.advance()
+      this.advance()
+      const text = this.source.substring(this.start, this.current)
+      this.tokens.push(
+        new Token(TokenKind.Type, text, null, this.line, Type.ArrayType, type),
+      )
+      return
+    }
+    const text = this.source.substring(this.start, this.current)
+    this.tokens.push(new Token(TokenKind.Type, text, null, this.line, type))
+    return
   }
 
   private isDigit(c: string) {
@@ -165,8 +183,17 @@ export class Lexer {
     while (this.isAlphaNumeric(this.peek())) this.advance()
 
     const text = this.source.substring(this.start, this.current)
-    let type = Token.keywords.get(text)
-    if (type == null) type = TokenType.Identifier
-    this.addToken(type)
+    let type = Token.types.get(text)
+    if (type != null) {
+      return this.type(type)
+    }
+
+    let keyword = Token.keywords.get(text)
+    if (keyword != null) {
+      this.addToken(keyword)
+      return
+    }
+
+    this.addToken(TokenKind.Identifier)
   }
 }

@@ -1,7 +1,7 @@
 /// Expect: "888\n"
 
 func main() -> int {
-  let a = 37;
+  let a: int = 37;
   a = a * 24;
   println("%d", a);
   return 0;

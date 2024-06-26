@@ -1,10 +1,10 @@
 /// Expect: "4613732\n"
 
 func main() -> int {
-	let acc = 0;
-	let a = 1;
-	let b = 1;
-	let curr = 1;
+	let acc: int = 0;
+	let a: int = 1;
+	let b: int = 1;
+	let curr: int = 1;
 	while(curr < 4000000) {
 		curr = a + b;
 

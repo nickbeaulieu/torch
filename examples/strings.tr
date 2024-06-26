@@ -1,0 +1,8 @@
+/// Expect: "Hello, World!\n"
+
+func main() -> int {
+	let d: str = "Hello, World!";
+	println("%s", d);
+
+	return 0;
+}

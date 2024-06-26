@@ -11,7 +11,7 @@ func main() -> int {
   print("it's working!\n");
   print("\n");
   print("%d\n", (9 + 7) * 2);
-  let b = true;
+  let b: bool = true;
   // println("%d", b);
   // println("%d", b);
   // println("%d", b);

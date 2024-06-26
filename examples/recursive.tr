@@ -1,6 +1,6 @@
 /// Expect: "10\n"
 
-let a = 0;
+let a: int = 0;
 
 func inc() -> int {
   if (a < 10) {

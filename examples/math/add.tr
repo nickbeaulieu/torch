@@ -1,7 +1,7 @@
 /// Expect: "61\n"
 
 func main() -> int {
-  let a = 24;
+  let a: int = 24;
   a = a + 37;
   println("%d", a);
   return 0;

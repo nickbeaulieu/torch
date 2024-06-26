@@ -1,9 +1,9 @@
 /// Expect: "1 + 2 = 3"
 
 func main() -> int {
-	let a = 1;
-	let b = 2;
-	let c = a + b;
+	let a: int = 1;
+	let b: int = 2;
+	let c: int = a + b;
 
 	print("%d + %d = %d", a, b, c);
 	return 0;

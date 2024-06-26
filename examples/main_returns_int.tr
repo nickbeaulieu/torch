@@ -2,7 +2,7 @@
 
 
 func main() -> int {
-  let a = 9;
+  let a: int = 9;
   print("%d", a);
   return 0;
 }

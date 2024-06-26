@@ -1,7 +1,7 @@
 /// Expect: "10\n"
 
 func main() -> int {
-  let a = 20;
+  let a: int = 20;
   a = a / 2;
   println("%d", a);
   return 0;

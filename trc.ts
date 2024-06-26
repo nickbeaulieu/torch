@@ -2,6 +2,7 @@ import { $ } from 'bun'
 import { generateC } from './src/codegen'
 import { Lexer } from './src/lexer'
 import { Parser } from './src/parser'
+import { typecheck } from './src/typecheck'
 import { args } from './utils'
 
 function usage() {
@@ -25,8 +26,10 @@ if (args.positionals.length > 2) {
       const code = await Bun.file(file).text()
       const lexer = new Lexer()
       const tokens = lexer.tokenize(code)
+      // console.log('tokens\n', tokens.map((t) => t.toString()).join('\n'))
       const parser = new Parser(tokens)
       const statements = parser.parse()
+      typecheck(statements)
       generateC(statements)
       await $`gcc -o output output.c`
       await $`./output`

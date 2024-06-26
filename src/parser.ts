@@ -1,5 +1,7 @@
 import { assert } from '../utils'
 import {
+  ArrayAccess,
+  ArrayLiteral,
   Assign,
   Binary,
   Call,
@@ -11,7 +13,7 @@ import {
   Variable,
 } from './expr'
 import { Block, Expression, Func, If, Let, Return, Stmt, While } from './stmt'
-import { Token, TokenType } from './token'
+import { Token, TokenKind, Type } from './token'
 
 export class Parser {
   private tokens: Token[]
@@ -37,13 +39,15 @@ export class Parser {
   private assignment(): Expr {
     let expr = this.or()
 
-    if (this.match(TokenType.Equal)) {
+    if (this.match(TokenKind.Equal)) {
       const equals = this.previous()
       const value = this.assignment()
 
       if (expr instanceof Variable) {
         const name = expr.name
         return new Assign(name, value)
+      } else if (expr instanceof ArrayAccess) {
+        return new Assign(expr, value)
       }
 
       console.error(equals, 'Invalid assignment target.')
@@ -56,7 +60,7 @@ export class Parser {
   private or() {
     let expr = this.and()
 
-    while (this.match(TokenType.Or)) {
+    while (this.match(TokenKind.Or)) {
       const operator = this.previous()
       const right = this.and()
       expr = new Logical(expr, operator, right)
@@ -68,7 +72,7 @@ export class Parser {
   private and() {
     let expr = this.equality()
 
-    while (this.match(TokenType.And)) {
+    while (this.match(TokenKind.And)) {
       const operator = this.previous()
       const right = this.equality()
       expr = new Logical(expr, operator, right)
@@ -79,8 +83,8 @@ export class Parser {
 
   private declaration(): Stmt {
     try {
-      if (this.match(TokenType.Func)) return this.function('function')
-      if (this.match(TokenType.Let)) return this.letDeclaration()
+      if (this.match(TokenKind.Func)) return this.function('function')
+      if (this.match(TokenKind.Let)) return this.letDeclaration()
       return this.statement()
     } catch (error) {
       this.synchronize()
@@ -90,50 +94,52 @@ export class Parser {
   }
 
   private letDeclaration() {
-    const name = this.consume(TokenType.Identifier, 'Expect variable name.')
+    const name = this.consume(TokenKind.Identifier, 'Expect variable name.')
+    this.consume(TokenKind.Colon, 'Expect ":" after variable name.')
+    const type = this.consume(TokenKind.Type, 'Expect type after ":".')
 
     let initializer: Expr = null!
-    if (this.match(TokenType.Equal)) {
+    if (this.match(TokenKind.Equal)) {
       initializer = this.expression()
     }
 
-    this.consume(TokenType.Semicolon, "Expect ';' after variable declaration.")
-    return new Let(name, initializer)
+    this.consume(TokenKind.Semicolon, "Expect ';' after variable declaration.")
+    return new Let(name, initializer, type)
   }
 
   private statement(): Stmt {
-    if (this.match(TokenType.For)) return this.forStatement()
-    if (this.match(TokenType.If)) return this.ifStatement()
-    if (this.match(TokenType.Return)) return this.returnStatement()
-    if (this.match(TokenType.While)) return this.whileStatement()
-    if (this.match(TokenType.LeftBrace)) return new Block(this.block())
+    if (this.match(TokenKind.For)) return this.forStatement()
+    if (this.match(TokenKind.If)) return this.ifStatement()
+    if (this.match(TokenKind.Return)) return this.returnStatement()
+    if (this.match(TokenKind.While)) return this.whileStatement()
+    if (this.match(TokenKind.LeftBrace)) return new Block(this.block())
 
     return this.expressionStatement()
   }
 
   private forStatement() {
-    this.consume(TokenType.LeftParen, "Expect '(' after 'for'.")
+    this.consume(TokenKind.LeftParen, "Expect '(' after 'for'.")
 
     let initializer: Stmt | null
-    if (this.match(TokenType.Semicolon)) {
+    if (this.match(TokenKind.Semicolon)) {
       initializer = null
-    } else if (this.match(TokenType.Let)) {
+    } else if (this.match(TokenKind.Let)) {
       initializer = this.letDeclaration()
     } else {
       initializer = this.expressionStatement()
     }
 
     let condition: Expr | null = null
-    if (!this.check(TokenType.Semicolon)) {
+    if (!this.check(TokenKind.Semicolon)) {
       condition = this.expression()
     }
-    this.consume(TokenType.Semicolon, "Expect ';' after loop condition.")
+    this.consume(TokenKind.Semicolon, "Expect ';' after loop condition.")
 
     let increment: Expr | null = null
-    if (!this.check(TokenType.RightParen)) {
+    if (!this.check(TokenKind.RightParen)) {
       increment = this.expression()
     }
-    this.consume(TokenType.RightParen, "Expect ')' after for clauses.")
+    this.consume(TokenKind.RightParen, "Expect ')' after for clauses.")
 
     let body = this.statement()
 
@@ -152,13 +158,13 @@ export class Parser {
   }
 
   private ifStatement() {
-    this.consume(TokenType.LeftParen, "Expect '(' after 'if'.")
+    this.consume(TokenKind.LeftParen, "Expect '(' after 'if'.")
     const condition = this.expression()
-    this.consume(TokenType.RightParen, "Expect ')' after if condition.")
+    this.consume(TokenKind.RightParen, "Expect ')' after if condition.")
 
     const thenBranch = this.statement()
     let elseBranch: Stmt | null = null
-    if (this.match(TokenType.Else)) {
+    if (this.match(TokenKind.Else)) {
       elseBranch = this.statement()
     }
 
@@ -168,18 +174,18 @@ export class Parser {
   private returnStatement() {
     const keyword = this.previous()
     let value = null
-    if (!this.check(TokenType.Semicolon)) {
+    if (!this.check(TokenKind.Semicolon)) {
       value = this.expression()
     }
 
-    this.consume(TokenType.Semicolon, "Expect ';' after return value.")
+    this.consume(TokenKind.Semicolon, "Expect ';' after return value.")
     return new Return(keyword, value)
   }
 
   private whileStatement() {
-    this.consume(TokenType.LeftParen, "Expect '(' after 'while'.")
+    this.consume(TokenKind.LeftParen, "Expect '(' after 'while'.")
     const condition = this.expression()
-    this.consume(TokenType.RightParen, "Expect ')' after condition.")
+    this.consume(TokenKind.RightParen, "Expect ')' after condition.")
     const body = this.statement()
 
     return new While(condition, body)
@@ -187,80 +193,54 @@ export class Parser {
 
   private expressionStatement() {
     const expr = this.expression()
-    this.consume(TokenType.Semicolon, "Expect ';' after expression.")
+    this.consume(TokenKind.Semicolon, "Expect ';' after expression.")
     return new Expression(expr)
   }
 
   private function(kind: string) {
-    const name = this.consume(TokenType.Identifier, `Expect ${kind} name.`)
-    this.consume(TokenType.LeftParen, `Expect '(' after ${kind} name.`)
+    const name = this.consume(TokenKind.Identifier, `Expect ${kind} name.`)
+    this.consume(TokenKind.LeftParen, `Expect '(' after ${kind} name.`)
 
     const params = []
-    if (!this.check(TokenType.RightParen)) {
+    if (!this.check(TokenKind.RightParen)) {
       do {
         if (params.length >= 255) {
           console.error(this.peek(), 'Cannot have more than 255 parameters.')
           throw new ParseError()
         }
         params.push(
-          this.consume(TokenType.Identifier, 'Expect parameter name.'),
+          this.consume(TokenKind.Identifier, 'Expect parameter name.'),
         )
-      } while (this.match(TokenType.Comma))
+      } while (this.match(TokenKind.Comma))
     }
 
-    this.consume(TokenType.RightParen, "Expect ')' after parameters.")
-    this.consume(TokenType.Arrow, `Expect '->' before ${kind} body.`)
+    this.consume(TokenKind.RightParen, "Expect ')' after parameters.")
+    this.consume(TokenKind.Arrow, `Expect '->' before ${kind} body.`)
     // type expression
-    this.consume(
-      TokenType.Identifier,
-      `Expect 'type identifier' before ${kind} body.`,
-    )
-    let returnType = this.previous()
-    this.consume(TokenType.LeftBrace, `Expect '{' before ${kind} body.`)
-    const body = this.block()
-    if (!(body.at(-1) instanceof Return)) {
-      if (name.lexeme === 'main' && returnType.lexeme !== 'int') {
-        console.error('Expect main function to return int')
-        throw new ParseError()
-      }
 
-      if (returnType.lexeme !== 'void') {
-        console.error(
-          returnType,
-          'Expect return statement at the end of the function.',
-        )
-        throw new ParseError()
-      }
-    } else {
-      // end of body is return statement
-      const returnStmt = body.at(-1) as Return
-      if (returnStmt.value instanceof Literal) {
-        if (returnType.lexeme === 'int') {
-          if (returnStmt.value.type !== 'number') {
-            console.error(returnStmt.value, 'Expect return type to be an int')
-            throw new ParseError()
-          }
-        }
-      }
-    }
+    this.consume(TokenKind.Type, `Expect return type after '->'.`)
+    let returnType = this.previous()
+
+    this.consume(TokenKind.LeftBrace, `Expect '{' before ${kind} body.`)
+    const body = this.block()
 
     return new Func(name, params, body, returnType)
   }
 
   private block(): Stmt[] {
     const statements = []
-    while (!this.check(TokenType.RightBrace) && !this.isAtEnd()) {
+    while (!this.check(TokenKind.RightBrace) && !this.isAtEnd()) {
       statements.push(this.declaration())
     }
 
-    this.consume(TokenType.RightBrace, "Expect '}' after block.")
+    this.consume(TokenKind.RightBrace, "Expect '}' after block.")
     return statements
   }
 
   private equality() {
     let expr = this.comparison()
 
-    while (this.match(TokenType.EqualEqual, TokenType.BangEqual)) {
+    while (this.match(TokenKind.EqualEqual, TokenKind.BangEqual)) {
       const operator = this.previous()
       const right = this.comparison()
       expr = new Binary(expr, operator, right)
@@ -269,7 +249,7 @@ export class Parser {
     return expr
   }
 
-  private match(...types: TokenType[]) {
+  private match(...types: TokenKind[]) {
     for (let type of types) {
       if (this.check(type)) {
         this.advance()
@@ -280,9 +260,9 @@ export class Parser {
     return false
   }
 
-  private check(type: TokenType) {
+  private check(type: TokenKind) {
     if (this.isAtEnd()) return false
-    return this.peek().type == type
+    return this.peek().kind == type
   }
 
   private advance() {
@@ -291,7 +271,7 @@ export class Parser {
   }
 
   private isAtEnd() {
-    return this.peek().type == TokenType.EOF
+    return this.peek().kind == TokenKind.EOF
   }
 
   private peek() {
@@ -307,10 +287,10 @@ export class Parser {
 
     while (
       this.match(
-        TokenType.GreaterThan,
-        TokenType.GreaterOrEqual,
-        TokenType.LessThan,
-        TokenType.LessOrEqual,
+        TokenKind.GreaterThan,
+        TokenKind.GreaterOrEqual,
+        TokenKind.LessThan,
+        TokenKind.LessOrEqual,
       )
     ) {
       const operator = this.previous()
@@ -324,7 +304,7 @@ export class Parser {
   private term() {
     let expr = this.factor()
 
-    while (this.match(TokenType.Minus, TokenType.Plus)) {
+    while (this.match(TokenKind.Minus, TokenKind.Plus)) {
       const operator = this.previous()
       const right = this.factor()
       expr = new Binary(expr, operator, right)
@@ -336,7 +316,7 @@ export class Parser {
   private factor() {
     let expr = this.unary()
 
-    while (this.match(TokenType.Slash, TokenType.Star, TokenType.Percent)) {
+    while (this.match(TokenKind.Slash, TokenKind.Star, TokenKind.Percent)) {
       const operator = this.previous()
       const right = this.unary()
       expr = new Binary(expr, operator, right)
@@ -346,7 +326,7 @@ export class Parser {
   }
 
   private unary(): Expr {
-    if (this.match(TokenType.Bang, TokenType.Minus)) {
+    if (this.match(TokenKind.Bang, TokenKind.Minus)) {
       const operator = this.previous()
       const right = this.unary()
       return new Unary(operator, right)
@@ -358,18 +338,18 @@ export class Parser {
   private finishCall(callee: Expr) {
     const args = []
 
-    if (!this.check(TokenType.RightParen)) {
+    if (!this.check(TokenKind.RightParen)) {
       do {
         if (args.length >= 255) {
           console.error(this.peek(), 'Cannot have more than 255 arguments.')
           throw new ParseError()
         }
         args.push(this.expression())
-      } while (this.match(TokenType.Comma))
+      } while (this.match(TokenKind.Comma))
     }
 
     const paren = this.consume(
-      TokenType.RightParen,
+      TokenKind.RightParen,
       "Expect ')' after arguments.",
     )
 
@@ -377,10 +357,16 @@ export class Parser {
   }
 
   private call() {
-    let expr: Literal | Variable | Grouping | Call = this.primary()
+    let expr:
+      | ArrayLiteral
+      | ArrayAccess
+      | Literal
+      | Variable
+      | Grouping
+      | Call = this.primary()
 
     while (true) {
-      if (this.match(TokenType.LeftParen)) {
+      if (this.match(TokenKind.LeftParen)) {
         expr = this.finishCall(expr)
       } else {
         break
@@ -391,30 +377,45 @@ export class Parser {
   }
 
   private primary() {
-    if (this.match(TokenType.False)) return new Literal(false, 'boolean')
-    if (this.match(TokenType.True)) return new Literal(true, 'boolean')
-    if (this.match(TokenType.Null)) return new Literal(null, 'null')
+    if (this.match(TokenKind.False)) return new Literal(false, 'boolean')
+    if (this.match(TokenKind.True)) return new Literal(true, 'boolean')
+    if (this.match(TokenKind.Null)) return new Literal(null, 'null')
+    if (this.match(TokenKind.LeftBracket)) {
+      const expr = this.expression()
+      this.consume(TokenKind.RightBracket, "Expect ']' after expression.")
+      return new ArrayLiteral([], Type.IntType, expr)
+    }
 
-    if (this.match(TokenType.Number)) {
+    if (this.match(TokenKind.Number)) {
       return new Literal(this.previous().literal, 'number')
-    } else if (this.match(TokenType.String)) {
+    } else if (this.match(TokenKind.String)) {
       return new Literal(this.previous().literal, 'string')
     }
 
-    if (this.match(TokenType.Identifier)) {
-      return new Variable(this.previous())
+    if (this.match(TokenKind.Identifier)) {
+      // FIXME: not an int...
+      const variable = this.previous()
+      if (this.match(TokenKind.LeftBracket)) {
+        const expr = this.expression()
+        this.consume(TokenKind.RightBracket, "Expect ']' after expression.")
+        return new ArrayAccess(variable, expr)
+      }
+      return new Variable(variable, Type.IntType)
     }
 
-    if (this.match(TokenType.LeftParen)) {
+    if (this.match(TokenKind.LeftParen)) {
       const expr = this.expression()
-      this.consume(TokenType.RightParen, "Expect ')' after expression.")
+      this.consume(
+        TokenKind.RightParen,
+        `Expect ')' after expression. at: ${this.previous().line}`,
+      )
       return new Grouping(expr)
     }
     assert(false, 'Unreachable')
     throw new Error('Unreachable')
   }
 
-  private consume(type: TokenType, message: string): Token {
+  private consume(type: TokenKind, message: string): Token {
     if (this.check(type)) return this.advance()
     console.error(type, message)
     throw new ParseError()
@@ -424,15 +425,15 @@ export class Parser {
     this.advance()
 
     while (!this.isAtEnd()) {
-      if (this.previous().type == TokenType.Semicolon) return
+      if (this.previous().kind == TokenKind.Semicolon) return
 
-      switch (this.peek().type) {
-        case TokenType.Func:
-        case TokenType.Let:
-        case TokenType.If:
-        case TokenType.While:
-        case TokenType.For:
-        case TokenType.Return:
+      switch (this.peek().kind) {
+        case TokenKind.Func:
+        case TokenKind.Let:
+        case TokenKind.If:
+        case TokenKind.While:
+        case TokenKind.For:
+        case TokenKind.Return:
           return
       }
 

@@ -1,5 +1,7 @@
 import { assert } from '../utils'
 import {
+  ArrayAccess,
+  ArrayLiteral,
   Assign,
   Binary,
   Call,
@@ -10,6 +12,7 @@ import {
   Variable,
 } from './expr'
 import { Block, Expression, Func, If, Let, Return, Stmt, While } from './stmt'
+import { Token, Type } from './token'
 
 export function generateC(statements: Stmt[]) {
   let output = `#include <stdio.h>
@@ -30,8 +33,8 @@ function generateStatement(stmt: Stmt): string {
 
   switch (true) {
     case stmt instanceof Func:
-      assert(stmt.returnType !== null, 'Return type is required')
-      output += `${stmt.returnType?.lexeme} ${stmt.name.lexeme}() {\n`
+      assert(stmt.type !== null, 'Return type is required')
+      output += `${stmt.type?.lexeme} ${stmt.name.lexeme}() {\n`
       output += stmt.body.map(generateStatement).join('\n')
       output += '\n}\n'
       return output
@@ -42,29 +45,14 @@ function generateStatement(stmt: Stmt): string {
     case stmt instanceof Expression:
       return generateExpression(stmt.expression) + ';'
     case stmt instanceof Let:
-      if (stmt.initializer instanceof Binary) {
-        // FIXME: assumes int for now
-        output += `int ${stmt.name.lexeme} = ${generateExpression(stmt.initializer)};\n`
+      const [type, subtype] = getTypes(stmt.type)
+      if (type === Type.ArrayType) {
+        assert(subtype !== null, 'Array type requires subtype')
+        assert(stmt.initializer instanceof ArrayLiteral, 'Expect array literal')
+        output += `${generateTypes(subtype!)} ${stmt.name.lexeme}[${generateExpression((stmt.initializer as ArrayLiteral).size)}] = {};\n`
         return output
       }
-
-      // FIXME: assumes type is int, string, bool, or null
-      const expr = stmt.initializer instanceof Literal ? stmt.initializer : null
-      if (expr === null) {
-        assert(false, 'Only literals are supported for now')
-        return ''
-      }
-
-      const type =
-        expr.type === 'null'
-          ? 'void*'
-          : expr.type === 'number'
-            ? 'int'
-            : expr.type === 'string'
-              ? 'char*'
-              : 'bool'
-
-      output += `${type} ${stmt.name.lexeme} = ${generateExpression(expr)};\n`
+      output += `${generateTypes(type)} ${stmt.name.lexeme} = ${generateExpression(stmt.initializer)};\n`
       return output
     case stmt instanceof Block:
       output += '{\n'
@@ -87,6 +75,11 @@ function generateStatement(stmt: Stmt): string {
       output += `while (${generateExpression(stmt.condition)}) {\n`
       output += generateStatement(stmt.body)
       output += '}\n'
+      return output
+
+    case stmt instanceof ArrayLiteral:
+      console.log('static array', stmt)
+      assert(false, 'Unreachable: array literal')
       return output
 
     default:
@@ -122,12 +115,15 @@ function generateExpression(expr: Expr): string {
       return `(${generateExpression(expr.expression)})`
     case expr instanceof Variable:
       return `${expr.name.lexeme}`
+    case expr instanceof ArrayAccess:
+      return `${expr.name.lexeme}[${generateExpression(expr.index)}]`
     case expr instanceof Assign:
+      if (expr.name instanceof ArrayAccess) {
+        return `${generateExpression(expr.name)} = ${generateExpression(expr.value)}`
+      }
       return `${expr.name.lexeme} = ${generateExpression(expr.value)}`
     case expr instanceof Literal:
-      if (expr.type === 'number') {
-        return `${expr.value}`
-      } else if (expr.type === 'boolean') {
+      if (expr.type === 'number' || expr.type === 'boolean') {
         return `${expr.value}`
       } else if (expr.type === 'null') {
         return `NULL`
@@ -137,6 +133,28 @@ function generateExpression(expr: Expr): string {
     default:
       console.error('expr', expr)
       assert(false, 'Unreachable: unknown expression type')
+      return ''
+  }
+}
+
+function getTypes(token: Token) {
+  if (!token.type) {
+    console.error('No type', token)
+    assert(false, 'Unreachable: unknown type')
+  }
+  return [token.type!, token.subtype] as const
+}
+
+function generateTypes(type: Type) {
+  switch (type) {
+    case Type.StringType:
+      return 'char*'
+    case Type.IntType:
+      return 'int'
+    case Type.BoolType:
+      return 'bool'
+    default:
+      assert(false, 'Unreachable: unknown type')
       return ''
   }
 }

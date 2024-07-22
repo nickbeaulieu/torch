@@ -1,7 +1,7 @@
 import { $ } from 'bun'
 import { generateC } from './src/codegen'
 import { tokenize } from './src/lexer'
-import { Parser } from './src/parser'
+import { parse } from './src/parser'
 import { typecheck } from './src/typecheck'
 import { args } from './utils'
 
@@ -26,8 +26,7 @@ if (args.positionals.length > 2) {
       const code = await Bun.file(file).text()
       const tokens = tokenize(code)
       // console.log('tokens\n', tokens.map((t) => t.toString()).join('\n'))
-      const parser = new Parser(tokens)
-      const statements = parser.parse()
+      const statements = parse(tokens)
       typecheck(statements)
       generateC(statements)
       await $`gcc -o output output.c`

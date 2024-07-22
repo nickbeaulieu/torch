@@ -1,6 +1,6 @@
 import { $ } from 'bun'
 import { generateC } from './src/codegen'
-import { Lexer } from './src/lexer'
+import { tokenize } from './src/lexer'
 import { Parser } from './src/parser'
 import { typecheck } from './src/typecheck'
 import { args } from './utils'
@@ -24,8 +24,7 @@ if (args.positionals.length > 2) {
   switch (command) {
     case 'run':
       const code = await Bun.file(file).text()
-      const lexer = new Lexer()
-      const tokens = lexer.tokenize(code)
+      const tokens = tokenize(code)
       // console.log('tokens\n', tokens.map((t) => t.toString()).join('\n'))
       const parser = new Parser(tokens)
       const statements = parser.parse()

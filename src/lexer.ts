@@ -1,64 +1,147 @@
 import { Token, TokenKind, Type } from './token'
 
-// heavily based on https://craftinginterpreters.com/scanning.html
+// based on https://craftinginterpreters.com/scanning.html
+function tokenize(input: string) {
+  let source = input
+  let start = 0
+  let current = 0
+  let line = 1
+  let tokens: Token[] = []
 
-export class Lexer {
-  private source: string = ''
-  private start: number = 0
-  private current: number = 0
-  private line: number = 1
-  tokens: Token[] = []
+  const isAtEnd = () => current >= source.length
+  const advance = () => source.charAt(current++)
+  const isDigit = (c: string) => (c >= '0' && c <= '9') || c == '_'
+  const isAlpha = (c: string) =>
+    (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+  const isAlphaNumeric = (c: string) => isAlpha(c) || isDigit(c)
 
-  tokenize(input: string) {
-    this.source = input
-    this.scanTokens()
-    return this.tokens
+  const match = (expected: string) => {
+    if (isAtEnd()) return false
+    if (source.charAt(current) != expected) return false
+
+    current++
+    return true
   }
 
-  private isAtEnd(): boolean {
-    return this.current >= this.source.length
+  const peek = () => {
+    if (isAtEnd()) return '\0'
+    return source.charAt(current)
   }
 
-  private scanTokens() {
-    while (!this.isAtEnd()) {
-      // We are at the beginning of the next lexeme.
-      this.start = this.current
-      this.scanToken()
+  const peekNext = () => {
+    if (current + 1 >= source.length) return '\0'
+    return source.charAt(current + 1)
+  }
+
+  const addToken = (type: TokenKind) => addTokenLiteral(type, null)
+  const addTokenLiteral = (
+    type: TokenKind,
+    literal: string | number | null,
+  ) => {
+    const text = source.substring(start, current)
+    tokens.push(new Token(type, text, literal, line))
+  }
+
+  const string = () => {
+    while (peek() != '"' && !isAtEnd()) {
+      if (peek() == '\n') line++
+      advance()
     }
-    this.tokens.push(new Token(TokenKind.EOF, '', null, this.line))
+
+    if (isAtEnd()) {
+      console.error(line, 'Unterminated string.')
+      return
+    }
+
+    // The closing ".
+    advance()
+
+    // Trim the surrounding quotes.
+    const value = source.substring(start + 1, current - 1)
+    addTokenLiteral(TokenKind.String, value)
   }
 
-  private scanToken() {
-    const c = this.advance()
+  const number = () => {
+    while (isDigit(peek())) advance()
+
+    let fractional = false
+    // Look for a fractional part.
+    if (peek() == '.' && isDigit(peekNext())) {
+      // Consume the "."
+      advance()
+      fractional = true
+
+      while (isDigit(peek())) advance()
+    }
+
+    const text = source.substring(start, current).replaceAll(/_/g, '')
+
+    addTokenLiteral(TokenKind.Number, text)
+  }
+
+  const type = (type: Type) => {
+    if (peek() == '[' && peekNext() == ']') {
+      advance()
+      advance()
+      const text = source.substring(start, current)
+      tokens.push(
+        new Token(TokenKind.Type, text, null, line, Type.ArrayType, type),
+      )
+      return
+    }
+    const text = source.substring(start, current)
+    tokens.push(new Token(TokenKind.Type, text, null, line, type))
+    return
+  }
+
+  const identifier = () => {
+    while (isAlphaNumeric(peek())) advance()
+
+    const text = source.substring(start, current)
+    let tokenType = Token.types.get(text)
+    if (tokenType != null) {
+      return type(tokenType)
+    }
+
+    let keyword = Token.keywords.get(text)
+    if (keyword != null) {
+      addToken(keyword)
+      return
+    }
+
+    addToken(TokenKind.Identifier)
+  }
+
+  const scanToken = () => {
+    const c = advance()
     // prettier-ignore
     switch(c) {
-      case '(': this.addToken(TokenKind.LeftParen); break;
-      case ')': this.addToken(TokenKind.RightParen); break;
-      case '[': this.addToken(TokenKind.LeftBracket); break;
-      case ']': this.addToken(TokenKind.RightBracket); break;
-      case '{': this.addToken(TokenKind.LeftBrace); break;
-      case '}': this.addToken(TokenKind.RightBrace); break;
-      case ',': this.addToken(TokenKind.Comma); break;
-      case '.': this.addToken(TokenKind.Dot); break;
-      case '+': this.addToken(TokenKind.Plus); break;
-      case ';': this.addToken(TokenKind.Semicolon); break;
-      case ':': this.addToken(TokenKind.Colon); break;
-      case '*': this.addToken(TokenKind.Star); break; 
-      case '%': this.addToken(TokenKind.Percent); break; 
-      
-      case '-': this.addToken(this.match('>') ? TokenKind.Arrow : TokenKind.Minus); break;
+      case '(': addToken(TokenKind.LeftParen); break;
+      case ')': addToken(TokenKind.RightParen); break;
+      case '[': addToken(TokenKind.LeftBracket); break;
+      case ']': addToken(TokenKind.RightBracket); break;
+      case '{': addToken(TokenKind.LeftBrace); break;
+      case '}': addToken(TokenKind.RightBrace); break;
+      case ',': addToken(TokenKind.Comma); break;
+      case '.': addToken(TokenKind.Dot); break;
+      case '+': addToken(TokenKind.Plus); break;
+      case ';': addToken(TokenKind.Semicolon); break;
+      case ':': addToken(TokenKind.Colon); break;
+      case '*': addToken(TokenKind.Star); break; 
+      case '%': addToken(TokenKind.Percent); break; 
+      case '-': addToken(match('>') ? TokenKind.Arrow : TokenKind.Minus); break;
       // prettier-ignore
-      case '!': this.addToken(this.match('=') ? TokenKind.BangEqual : TokenKind.Bang); break;
-      case '=': this.addToken(this.match('=') ? TokenKind.EqualEqual : TokenKind.Equal);break;
-      case '<': this.addToken(this.match('=') ? TokenKind.LessOrEqual : TokenKind.LessThan);break;
-      case '>': this.addToken(this.match('=') ? TokenKind.GreaterOrEqual : TokenKind.GreaterThan);break;
+      case '!': addToken(match('=') ? TokenKind.BangEqual : TokenKind.Bang); break;
+      case '=': addToken(match('=') ? TokenKind.EqualEqual : TokenKind.Equal);break;
+      case '<': addToken(match('=') ? TokenKind.LessOrEqual : TokenKind.LessThan);break;
+      case '>': addToken(match('=') ? TokenKind.GreaterOrEqual : TokenKind.GreaterThan);break;
 
       case '/':
-        if (this.match('/')) {
+        if (match('/')) {
           // A comment goes until the end of the line.
-          while (this.peek() != '\n' && !this.isAtEnd()) this.advance();
+          while (peek() != '\n' && !isAtEnd()) advance();
         } else {
-          this.addToken(TokenKind.Slash);
+          addToken(TokenKind.Slash);
         }
         break;
 
@@ -69,133 +152,28 @@ export class Lexer {
         break;
 
       case '\n':
-        this.line++;
+        line++;
         break;
 
-      case '"': this.string(); break;
+      case '"': string(); break;
       default:
-        if (this.isDigit(c)) 
-          this.number();
-         else if (this.isAlpha(c)) 
-          this.identifier();
+        if (isDigit(c)) 
+          number();
+         else if (isAlpha(c)) 
+          identifier();
          else 
-          console.error("Unexpected character on line " + this.line + " at " + this.current, this.source.charAt(this.current));
+          console.error("Unexpected character on line " + line + " at " + current, source.charAt(current));
         break;
     }
   }
 
-  private match(expected: string) {
-    if (this.isAtEnd()) return false
-    if (this.source.charAt(this.current) != expected) return false
-
-    this.current++
-    return true
+  while (!isAtEnd()) {
+    start = current
+    scanToken()
   }
+  tokens.push(new Token(TokenKind.EOF, '', null, line))
 
-  private peek() {
-    if (this.isAtEnd()) return '\0'
-    return this.source.charAt(this.current)
-  }
-
-  private peekNext() {
-    if (this.current + 1 >= this.source.length) return '\0'
-    return this.source.charAt(this.current + 1)
-  }
-
-  private advance() {
-    return this.source.charAt(this.current++)
-  }
-
-  private addToken(type: TokenKind) {
-    this.addTokenLiteral(type, null)
-  }
-
-  private addTokenLiteral(type: TokenKind, literal: string | number | null) {
-    const text = this.source.substring(this.start, this.current)
-    this.tokens.push(new Token(type, text, literal, this.line))
-  }
-
-  private string() {
-    while (this.peek() != '"' && !this.isAtEnd()) {
-      if (this.peek() == '\n') this.line++
-      this.advance()
-    }
-
-    if (this.isAtEnd()) {
-      console.error(this.line, 'Unterminated string.')
-      return
-    }
-
-    // The closing ".
-    this.advance()
-
-    // Trim the surrounding quotes.
-    const value = this.source.substring(this.start + 1, this.current - 1)
-    this.addTokenLiteral(TokenKind.String, value)
-  }
-
-  private number() {
-    while (this.isDigit(this.peek())) this.advance()
-
-    let fractional = false
-    // Look for a fractional part.
-    if (this.peek() == '.' && this.isDigit(this.peekNext())) {
-      // Consume the "."
-      this.advance()
-      fractional = true
-
-      while (this.isDigit(this.peek())) this.advance()
-    }
-
-    const text = this.source
-      .substring(this.start, this.current)
-      .replaceAll(/_/g, '')
-
-    this.addTokenLiteral(TokenKind.Number, text)
-  }
-
-  private type(type: Type) {
-    if (this.peek() == '[' && this.peekNext() == ']') {
-      this.advance()
-      this.advance()
-      const text = this.source.substring(this.start, this.current)
-      this.tokens.push(
-        new Token(TokenKind.Type, text, null, this.line, Type.ArrayType, type),
-      )
-      return
-    }
-    const text = this.source.substring(this.start, this.current)
-    this.tokens.push(new Token(TokenKind.Type, text, null, this.line, type))
-    return
-  }
-
-  private isDigit(c: string) {
-    return (c >= '0' && c <= '9') || c == '_'
-  }
-
-  private isAlpha(c: string) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
-  }
-
-  private isAlphaNumeric(c: string) {
-    return this.isAlpha(c) || this.isDigit(c)
-  }
-
-  private identifier() {
-    while (this.isAlphaNumeric(this.peek())) this.advance()
-
-    const text = this.source.substring(this.start, this.current)
-    let type = Token.types.get(text)
-    if (type != null) {
-      return this.type(type)
-    }
-
-    let keyword = Token.keywords.get(text)
-    if (keyword != null) {
-      this.addToken(keyword)
-      return
-    }
-
-    this.addToken(TokenKind.Identifier)
-  }
+  return tokens
 }
+
+export { tokenize }

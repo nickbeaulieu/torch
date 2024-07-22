@@ -6,9 +6,10 @@ it's a systems programming language that compiles to C. it supports some higher-
 - function & (trait?) overloading
 - `and` / `or` / `in` keywords
 - `defer`
-- ranges like `for i in 0..10 {...` syntactical sugar
-- `out` / `ref` to pass by reference
-- pattern matching with `[variable] switch` which desugars to a normal switch/case/default
+- ranges like `for i in 0..10 {...`
+- `out` / `ref` to pass by reference from c#
+- `guard` from swift
+- pattern matching with `[variable] switch`
 
 ## types
 
@@ -39,3 +40,17 @@ std library will offer heap memory allocation tools to work with arrays, etc., b
 
 - unit testing
 - documentation generator
+
+## TODO
+
+- [x] basic typing system
+- [x] static arrays
+- [x] turing-complete
+- [ ] function parameters
+- [ ] error reporting
+- [ ] import from another file
+- [ ] static type checking
+  - [ ] type inference
+- [ ] struct
+- [ ] traits (essentially methods on a struct)
+- [ ] dynamic strings and arrays

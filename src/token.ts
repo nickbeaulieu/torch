@@ -122,15 +122,18 @@ types.set('float', Type.FloatType) // (f32) float
 types.set('char', Type.CharType) // char
 types.set('str', Type.StringType) // char*
 
+type TokenType = {
+  type: Type
+  subtype?: Type
+}
+
 export class Token {
   constructor(
     public readonly kind: TokenKind,
     public readonly lexeme: string,
     public readonly literal: string | number | null,
     public readonly line: number,
-    public readonly type: Type | null = null,
-    // If type is array, this will be the type contained in the array
-    public readonly subtype: Type | null = null,
+    public readonly type: TokenType | null = null,
   ) {}
 
   toString() {

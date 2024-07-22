@@ -85,12 +85,15 @@ function tokenize(input: string) {
       advance()
       const text = source.substring(start, current)
       tokens.push(
-        new Token(TokenKind.Type, text, null, line, Type.ArrayType, type),
+        new Token(TokenKind.Type, text, null, line, {
+          type: Type.ArrayType,
+          subtype: type,
+        }),
       )
       return
     }
     const text = source.substring(start, current)
-    tokens.push(new Token(TokenKind.Type, text, null, line, type))
+    tokens.push(new Token(TokenKind.Type, text, null, line, { type }))
     return
   }
 

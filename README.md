@@ -36,18 +36,35 @@ a switch {
 }
 ```
 
-std library will offer heap memory allocation tools to work with arrays, etc., but the language itself is not guaranteed to be safe.
+- std library
+
+will offer heap memory allocation tools to work with arrays, etc., but the language itself is not guaranteed to be safe.
 
 - unit testing
-- documentation generator
+
+```go
+test that "add adds" {
+  let a = add(1, 2);
+  assert(a == 3)
+}
+```
+
+- docs generator `torchlight`
+
+```go
+// @returns int
+func add(a: int, b: int) {
+  return a + b;
+}
+```
 
 ## TODO
 
 - [x] basic typing system
 - [x] static arrays
 - [x] turing-complete
-- [ ] function parameters
-- [ ] error reporting
+- [x] function parameters
+- [ ] better error reporting
 - [ ] import from another file
 - [ ] static type checking
   - [ ] type inference

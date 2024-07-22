@@ -1,0 +1,34 @@
+/// Expect "3\n21\n"
+
+func add(a: int, b: int) -> int {
+	return a + b;
+}
+
+func addSameLengthArrays(a: int[], b: int[]) -> int {
+	let c: int = 0;
+	for (let i: int = 0; i < a[2]; i++) {
+		c += a[i] + b[i];
+	}
+	return c;
+}
+
+func main() -> int {
+	let a: int = add(1, 2);
+
+	println("%d", a);
+
+	let arrA: int[] = [3];
+	arrA[0] = 1;
+	arrA[1] = 2;
+	arrA[2] = 3;
+
+	let arrB: int[] = [3];
+	arrB[0] = 4;
+	arrB[1] = 5;
+	arrB[2] = 6;
+	let arr: int = addSameLengthArrays(arrA, arrB);
+
+	println("%d", arr);
+
+	return 0;
+}

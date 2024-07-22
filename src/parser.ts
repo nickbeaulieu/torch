@@ -83,14 +83,29 @@ const parse = (tokens: Token[]) => {
     const name = consume(TokenKind.Identifier, `Expect ${kind} name.`)
     consume(TokenKind.LeftParen, `Expect '(' after ${kind} name.`)
 
-    const params = []
+    const params: Token[] = []
     if (!check(TokenKind.RightParen)) {
       do {
         if (params.length >= 255) {
           console.error(peek(), 'Cannot have more than 255 parameters.')
           throw new ParseError()
         }
-        params.push(consume(TokenKind.Identifier, 'Expect parameter name.'))
+        const token = consume(TokenKind.Identifier, 'Expect parameter name.')
+        consume(TokenKind.Colon, 'Expect ":" after parameter name.')
+        const type = consume(TokenKind.Type, 'Expect type after ":"')
+        if (!type.type) {
+          console.error(type, 'Type is required.')
+          throw new ParseError()
+        }
+        params.push(
+          new Token(
+            TokenKind.Identifier,
+            token.lexeme,
+            null,
+            token.line,
+            type.type,
+          ),
+        )
       } while (match(TokenKind.Comma))
     }
 

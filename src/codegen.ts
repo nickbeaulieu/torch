@@ -34,7 +34,16 @@ function generateStatement(stmt: Stmt): string {
   switch (true) {
     case stmt instanceof Func:
       assert(stmt.type !== null, 'Return type is required')
-      output += `${stmt.type?.lexeme} ${stmt.name.lexeme}() {\n`
+      output += `${stmt.type?.lexeme} ${stmt.name.lexeme}(${stmt.params
+        .map((p) => {
+          const [type, subtype] = getTypes(p)
+          if (type === Type.ArrayType) {
+            assert(subtype !== null, 'Array type requires subtype')
+            return `${generateTypes(subtype!)} ${p.lexeme}[]`
+          }
+          return `${generateTypes(type)} ${p.lexeme}`
+        })
+        .join(', ')}) {\n`
       output += stmt.body.map(generateStatement).join('\n')
       output += '\n}\n'
       return output
@@ -48,8 +57,11 @@ function generateStatement(stmt: Stmt): string {
       const [type, subtype] = getTypes(stmt.type)
       if (type === Type.ArrayType) {
         assert(subtype !== null, 'Array type requires subtype')
-        assert(stmt.initializer instanceof ArrayLiteral, 'Expect array literal')
-        output += `${generateTypes(subtype!)} ${stmt.name.lexeme}[${generateExpression((stmt.initializer as ArrayLiteral).size)}] = {};\n`
+        if (stmt.initializer instanceof ArrayLiteral) {
+          output += `${generateTypes(subtype!)} ${stmt.name.lexeme}[${generateExpression((stmt.initializer as ArrayLiteral).size)}] = {};\n`
+        } else {
+          output += `${generateTypes(subtype!)} ${stmt.name.lexeme}[] = ${generateExpression(stmt.initializer)};\n`
+        }
         return output
       }
       output += `${generateTypes(type)} ${stmt.name.lexeme} = ${generateExpression(stmt.initializer)};\n`
@@ -78,7 +90,6 @@ function generateStatement(stmt: Stmt): string {
       return output
 
     case stmt instanceof ArrayLiteral:
-      console.log('static array', stmt)
       assert(false, 'Unreachable: array literal')
       return output
 
@@ -154,7 +165,7 @@ function getTypes(token: Token) {
   if (!token.type) {
     assert(false, 'Unreachable: no type was found...')
   }
-  return [token.type!, token.subtype] as const
+  return [token.type!.type!, token.type!.subtype] as const
 }
 
 function generateTypes(type: Type) {

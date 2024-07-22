@@ -22,7 +22,7 @@ function typecheckStatement(stmt: Stmt) {
   switch (true) {
     case stmt instanceof Func:
       const { name, type, body } = stmt
-      if (name.lexeme === 'main' && type.type !== Type.IntType) {
+      if (name.lexeme === 'main' && type.type!.type !== Type.IntType) {
         error('Expect function `main` to return `int`')
       }
       for (let stmt of body) {
@@ -51,7 +51,7 @@ function typecheckStatement(stmt: Stmt) {
       typecheckExpression(stmt.expression)
       return
     case stmt instanceof Let:
-      typecheckType(stmt.type.type, stmt.initializer)
+      typecheckType(stmt.type.type!.type, stmt.initializer)
       return
     case stmt instanceof Block:
       return

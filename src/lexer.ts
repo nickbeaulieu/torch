@@ -124,16 +124,18 @@ function tokenize(input: string) {
       case '}': addToken(TokenKind.RightBrace); break;
       case ',': addToken(TokenKind.Comma); break;
       case '.': addToken(TokenKind.Dot); break;
-      case '+': addToken(match('+') ? TokenKind.PlusPlus : TokenKind.Plus); break;
+      case '+': addToken(match('+') ? TokenKind.PlusPlus : match('=') ? TokenKind.PlusEqual : TokenKind.Plus); break;
       case ';': addToken(TokenKind.Semicolon); break;
       case ':': addToken(TokenKind.Colon); break;
-      case '*': addToken(TokenKind.Star); break; 
+      case '*': addToken(match('=') ? TokenKind.StarEqual : TokenKind.Star); break; 
       case '%': addToken(TokenKind.Percent); break; 
       case '-': addToken(match('>') ? 
         TokenKind.Arrow : 
         match('-') ? 
           TokenKind.MinusMinus : 
-          TokenKind.Minus
+            match('=') ? 
+              TokenKind.MinusEqual :
+              TokenKind.Minus
       ); break;
       // prettier-ignore
       case '!': addToken(match('=') ? TokenKind.BangEqual : TokenKind.Bang); break;
@@ -146,7 +148,11 @@ function tokenize(input: string) {
           // A comment goes until the end of the line.
           while (peek() != '\n' && !isAtEnd()) advance();
         } else {
-          addToken(TokenKind.Slash);
+          if (match('=')) {
+            addToken(TokenKind.SlashEqual);
+          } else {
+            addToken(TokenKind.Slash);
+          }
         }
         break;
 

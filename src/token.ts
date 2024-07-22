@@ -7,14 +7,9 @@ export enum TokenKind {
   RightBracket = 'RightBracket',
   Comma = 'Comma',
   Dot = 'Dot',
-  Minus = 'Minus',
-  MinusMinus = 'MinusMinus',
-  Plus = 'Plus',
-  PlusPlus = 'PlusPlus',
+
   Semicolon = 'Semicolon',
   Colon = 'Colon',
-  Slash = 'Slash',
-  Star = 'Star',
   Percent = 'Percent',
 
   // One or two character tokens.
@@ -26,6 +21,16 @@ export enum TokenKind {
   GreaterOrEqual = 'GreaterOrEqual',
   LessThan = 'LessThan',
   LessOrEqual = 'LessOrEqual',
+  Minus = 'Minus',
+  MinusMinus = 'MinusMinus',
+  MinusEqual = 'MinusEqual',
+  Plus = 'Plus',
+  PlusPlus = 'PlusPlus',
+  PlusEqual = 'PlusEqual',
+  Slash = 'Slash',
+  SlashEqual = 'SlashEqual',
+  Star = 'Star',
+  StarEqual = 'StarEqual',
 
   // Literals.
   Identifier = 'Identifier',

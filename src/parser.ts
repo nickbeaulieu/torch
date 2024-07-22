@@ -288,14 +288,22 @@ const parse = (tokens: Token[]) => {
   const assignment = (): Expr => {
     let expr = or()
 
-    if (match(TokenKind.PlusPlus) || match(TokenKind.MinusMinus)) {
-      const op =
-        previous().kind == TokenKind.PlusPlus
-          ? new Token(TokenKind.Plus, '+', null, 0)
-          : new Token(TokenKind.Minus, '-', null, 0)
-
-      const value = new Binary(expr, op, new Literal('1', 'number'))
+    if (
+      match(TokenKind.PlusEqual) ||
+      match(TokenKind.MinusEqual) ||
+      match(TokenKind.StarEqual) ||
+      match(TokenKind.SlashEqual)
+    ) {
+      const operator = baseOp(previous())
+      const rhs = assignment()
+      const value = new Binary(expr, operator, rhs)
       return assign(expr, value)
+    }
+
+    if (match(TokenKind.PlusPlus) || match(TokenKind.MinusMinus)) {
+      const op = baseOp(previous())
+      const rhs = new Binary(expr, op, new Literal('1', 'number'))
+      return assign(expr, rhs)
     }
 
     if (match(TokenKind.Equal)) {
@@ -434,3 +442,20 @@ const parse = (tokens: Token[]) => {
 export { parse }
 
 class ParseError extends Error {}
+
+const baseOp = (token: Token) => {
+  switch (token.kind) {
+    case TokenKind.PlusPlus:
+    case TokenKind.PlusEqual:
+      return new Token(TokenKind.Plus, '+', null, 0)
+    case TokenKind.MinusMinus:
+    case TokenKind.MinusEqual:
+      return new Token(TokenKind.Minus, '-', null, 0)
+    case TokenKind.StarEqual:
+      return new Token(TokenKind.Star, '*', null, 0)
+    case TokenKind.SlashEqual:
+      return new Token(TokenKind.Slash, '/', null, 0)
+  }
+  console.error(token, 'Token has no base operation.')
+  throw new ParseError()
+}

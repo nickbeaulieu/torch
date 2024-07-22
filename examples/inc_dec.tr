@@ -1,0 +1,12 @@
+/// Expect: "2\n"
+
+func main() -> int {
+	let a: int = 1;
+	a++;
+	a++;
+	a--;
+
+	println("%d", a);
+
+	return 0;
+}

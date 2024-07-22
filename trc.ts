@@ -25,7 +25,9 @@ if (args.positionals.length > 2) {
     case 'run':
       const code = await Bun.file(file).text()
       const tokens = tokenize(code)
-      // console.log('tokens\n', tokens.map((t) => t.toString()).join('\n'))
+      if (args.values.debug) {
+        console.log('tokens\n', tokens.map((t) => t.toString()).join('\n'))
+      }
       const statements = parse(tokens)
       typecheck(statements)
       generateC(statements)

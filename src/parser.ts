@@ -272,22 +272,35 @@ const parse = (tokens: Token[]) => {
     return expr
   }
 
+  const assign = (expr: Expr, value: Expr) => {
+    if (expr instanceof Variable) {
+      const name = expr.name
+      return new Assign(name, value)
+    } else if (expr instanceof ArrayAccess) {
+      return new Assign(expr, value)
+    }
+
+    const equals = previous()
+    console.error(equals, 'Invalid assignment target.')
+    throw new ParseError()
+  }
+
   const assignment = (): Expr => {
     let expr = or()
 
+    if (match(TokenKind.PlusPlus) || match(TokenKind.MinusMinus)) {
+      const op =
+        previous().kind == TokenKind.PlusPlus
+          ? new Token(TokenKind.Plus, '+', null, 0)
+          : new Token(TokenKind.Minus, '-', null, 0)
+
+      const value = new Binary(expr, op, new Literal('1', 'number'))
+      return assign(expr, value)
+    }
+
     if (match(TokenKind.Equal)) {
-      const equals = previous()
       const value = assignment()
-
-      if (expr instanceof Variable) {
-        const name = expr.name
-        return new Assign(name, value)
-      } else if (expr instanceof ArrayAccess) {
-        return new Assign(expr, value)
-      }
-
-      console.error(equals, 'Invalid assignment target.')
-      throw new ParseError()
+      return assign(expr, value)
     }
 
     return expr

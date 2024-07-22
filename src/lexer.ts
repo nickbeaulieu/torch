@@ -124,12 +124,17 @@ function tokenize(input: string) {
       case '}': addToken(TokenKind.RightBrace); break;
       case ',': addToken(TokenKind.Comma); break;
       case '.': addToken(TokenKind.Dot); break;
-      case '+': addToken(TokenKind.Plus); break;
+      case '+': addToken(match('+') ? TokenKind.PlusPlus : TokenKind.Plus); break;
       case ';': addToken(TokenKind.Semicolon); break;
       case ':': addToken(TokenKind.Colon); break;
       case '*': addToken(TokenKind.Star); break; 
       case '%': addToken(TokenKind.Percent); break; 
-      case '-': addToken(match('>') ? TokenKind.Arrow : TokenKind.Minus); break;
+      case '-': addToken(match('>') ? 
+        TokenKind.Arrow : 
+        match('-') ? 
+          TokenKind.MinusMinus : 
+          TokenKind.Minus
+      ); break;
       // prettier-ignore
       case '!': addToken(match('=') ? TokenKind.BangEqual : TokenKind.Bang); break;
       case '=': addToken(match('=') ? TokenKind.EqualEqual : TokenKind.Equal);break;

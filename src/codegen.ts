@@ -132,7 +132,7 @@ function generateExpression(expr: Expr): string {
             return `${parseable}`
           } else {
             // unsigned long must be explicitly written as `123lu` so we can't just return `123`
-            // this is required if it doesn't fit in a regular int
+            // required if it doesn't fit in a regular int
             return `${expr.value}lu`
           }
         }

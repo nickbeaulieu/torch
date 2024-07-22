@@ -1,28 +1,28 @@
-import { parseArgs } from "util";
+import { parseArgs } from 'util'
 
 function assert(condition: any, message: string) {
   if (!condition) {
-    throw new Error(message);
+    throw new Error(message)
   }
 }
 
 function notImplemented(): never {
-  throw new Error("Not implemented");
+  throw new Error('Not implemented')
 }
 
 const args = parseArgs({
   args: Bun.argv,
   options: {
-    flag1: {
-      type: "boolean",
-      short: "f",
+    debug: {
+      type: 'boolean',
+      short: 'd',
     },
     flag2: {
-      type: "string",
+      type: 'string',
     },
   },
   strict: true,
   allowPositionals: true,
-});
+})
 
-export { assert, notImplemented, args };
+export { args, assert, notImplemented }
